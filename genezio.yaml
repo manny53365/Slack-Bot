@@ -1,7 +1,7 @@
 #File that configures what classes will be deployed in Genezio Infrastructure.
 #Add the paths to classes that you want to deploy in "classes".
 
-name: slack bot
+name: slack bot test
 sdk:
   language: js
   runtime: node
@@ -10,6 +10,6 @@ classes:
   - path: "./app.js"
     type: jsonrpc
     methods:
-      - name: "checkNodeStatus"
+      - name: "checkNodeStatusTest"
         type: cron
-        cronString: "* * * * ? *" 
+        cronString: "0/5 * * * ? *"
