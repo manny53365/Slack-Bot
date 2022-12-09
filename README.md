@@ -6,11 +6,11 @@ The slack bot is designed to help a user in the following ways
 
 1. Automate the process of checking your Etherum node(s).
 2. Send an automated message the the channel id specified in the .env file. The message will inform you of your node's status (i.e good or not responding/out of sync).
-3. Should your node ever fall out of sync there are 3 potential potential fixes offered by the bot.
+3. Should your node ever fall out of sync there are 3 potential potential fixes offered by the bot:
 
-- The bot only informs the user and takes no action
-- The bot will automatically send a reboot to the AWS instance(s) specified in the .env file.
-- The bot will send a button to the slack chat asking the user for confirmation to reboot the AWS instance(s).
+    - The bot only informs the user and takes no action
+    - The bot will automatically send a reboot to the AWS instance(s) specified in the .env file.
+    - The bot will send a button to the slack chat asking the user for confirmation to reboot the AWS instance(s).
 
 ---
 
@@ -35,4 +35,4 @@ The `auto` value will automatically send a reboot to the AWS EC2 instance.
 
 The `manual` option will send an interactive message to the selected slack channel containing a selection 'Approve' or 'Reject' button for the user. Upon selecting 'Approve' the AWS reboot will be triggered in the background by the bot.
 
-Webhooks are a very vital part of this bot for `manual` configurations. In slack, you will need to set up and configure your incoming webhooks. [Slack Webhooks Documentation](https://api.slack.com/messaging/webhooks)
+Webhooks are a very vital part of this bot for `manual` configurations. In slack, you will need to set up and configure your incoming webhooks [Slack Webhooks Documentation](https://api.slack.com/messaging/webhooks).
