@@ -19,7 +19,7 @@ The slack bot is designed to help a user in the following ways
 When you download the files to your local system and unzip them in the directory you wish to use. Open the command prompt in your working directory where you unzipped your files and install all of the node dependencies by running the command `npm i`.
 Once all of this has completed, you're ready to begin. This bot is using the genez.io platform, to install the dependencies and get this set up you can follow the instructions here [Genezio Github](https://github.com/Genez-io/genezio).
 
-The genezio.yaml file will house your cron frequency (how often the check is done), by default I have set this to 5 minutes. This cron setting is based off of the AWS model, information to configure can be found here [Cron Expressions Documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html).
+The genezio.yaml file will house your `cron` frequency (how often the check is done), by default I have set this to 5 minutes. This `cron` setting is based off of the AWS model, information to configure can be found here [Cron Expressions Documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html). You can update this value using the `cronString` parameter in the genezio.yaml file.
 
 I have also included a dummy .env file with the proper variable names laid out. **You will need to enter your own value information for the code to work. I recommend you keep the variable names the same.**
 
@@ -27,7 +27,7 @@ I have also included a dummy .env file with the proper variable names laid out. 
 
 ### Configuration
 
-The `cron` configuration is located in your genezio.yaml file. The second config is the .env file. An important parameter to keep in mind is the parameter to handle the repair logic. The valid values are one of the following `none || auto || manual`.
+The `cron` configuration is located in your genezio.yaml file. The second config is the .env file. An important parameter to keep in mind is the parameter to handle the repair logic, the parameter name is `REPAIR_OPTION`. The valid values are one of the following `none || auto || manual`.
 
 The `none` configuration value will just send a message to the slack chat to inform the user the node is out of sync.
 
