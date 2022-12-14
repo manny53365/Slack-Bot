@@ -1,4 +1,5 @@
-require('dotenv').config();
+require('dotenv').config({override: true});
+// added as a work around
 
 const { WebClient, LogLevel } = require("@slack/web-api");
 const axios = require('axios');
@@ -86,14 +87,12 @@ export class checkNodeHealth {
         region: process.env.AWS_REGION
       });
     
-      console.log(process.env.AWS_ACCESS_KEY_ID, process.env.AWS_SECRET_ACCESS_KEY, process.env.AWS_REGION);
-    
       const params = {
         InstanceIds: [process.env.INSTANCE_ID]
       };
     
       try {
-        const data = ec2.rebootInstances(params)
+        const data = await ec2.rebootInstances(params).promise();
         console.log(data);
       } catch (err) {
         console.error(err);
@@ -128,6 +127,11 @@ export class checkNodeHealth {
   }
 
   async outOfSyncNodeHandlerReboot() {
+
+    const client = new WebClient(process.env.BOT_TOKEN, {
+      // LogLevel can be imported and used to make debugging simpler
+      logLevel: LogLevel.DEBUG
+    });
 
     const message = {
       "blocks": [
@@ -169,28 +173,58 @@ export class checkNodeHealth {
 
     const channelId = process.env.CHANNEL_ID;
 
-    try {
-      // Send the initial message with the button elements:
-      const response = await axios.post(process.env.REBOOT_BUTTON, message);
-    
-      console.log('Response:', response);
-      console.log('Response data:', response.data);
-    
-      // Extract the value of the button clicked from the response data:
-      const data = JSON.parse(response.data);
-      const selectedValue = data.blocks[1].elements[0].value;
-    
-      // Create a new object for the response message without the button elements:
-      const resData = {
-        channel: channelId,
-        text: `You selected: ${selectedValue}`
-      };
-    
-      // Send the response message to the Slack channel:
-      await axios.post(process.env.REBOOT_BUTTON, resData);
-    } catch (err) {
-      console.log(err);
-    }
-  }  
+    await axios.post(process.env.REBOOT_BUTTON, message).then(payload => {
 
+      console.log(payload);
+
+      // const responseUrl = response_url;
+
+      const userAction = actions[0].value;
+
+      console.log(payload);
+
+      // let action = payload.actions[0].value;
+
+      // console.log(action);
+
+      async function sendResponse(){
+        await axios.post(responseUrl, {text: `Input received: ${userAction}`}).then(console.log('Successfully sent response!')).catch(err => {console.log(err)});
+  
+        if (userAction.value === "Approve") {
+          console.log('found it!')
+          rebootApproved();
+        } else {
+          console.log('Not found')
+          rebootRejected();
+        }
+      }
+
+      sendResponse();
+
+      return {status:200, statusText: 'OK'}
+    }); 
+
+    async function rebootApproved(){
+      try {
+        client.chat.postMessage({
+          channel: channelId,
+          text: `Reboot has been approved, rebooting...`
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    }
+
+    async function rebootRejected(){
+      try {
+        client.chat.postMessage({
+          channel: channelId,
+          text: `Reboot has been rejected.`
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    }
+
+    }
 }
