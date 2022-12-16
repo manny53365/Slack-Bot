@@ -4,6 +4,7 @@ require('dotenv').config({override: true});
 const { WebClient, LogLevel } = require("@slack/web-api");
 const axios = require('axios');
 const AWS = require("aws-sdk");
+const { Buffer } = require('buffer');
 
 export class checkNodeHealth {
 
@@ -55,7 +56,7 @@ export class checkNodeHealth {
 
       difference <= 3 ? nodeIsHealthy() :
 
-      difference > 3  && process.env.REPAIR_OPTION === 'none' ? informUserOutOfSync() : difference > 3  && process.env.REPAIR_OPTION === 'auto' ? rebootEC2Instance() : difference > 3  && process.env.REPAIR_OPTION === 'manual' ? self.outOfSyncNodeHandlerReboot() : configIsInvalid();
+      difference > 3  && process.env.REPAIR_OPTION === 'none' ? informUserOutOfSync() : difference > 3  && process.env.REPAIR_OPTION === 'auto' ? rebootEC2Instance() : difference > 3  && process.env.REPAIR_OPTION === 'manual' ? manualReboot() : configIsInvalid();
     };
 
     async function nodeIsHealthy(){
@@ -116,6 +117,50 @@ export class checkNodeHealth {
         }
     }
 
+    async function manualReboot(){
+      const message = {
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "Your node is out of sync, would you like to reboot?",
+              "emoji": true
+            }
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "emoji": true,
+                  "text": "Approve"
+                },
+                "style": "primary",
+                "value": "Approve"
+              },
+              {
+                "type": "button",
+                "text": {
+                  "type": "plain_text",
+                  "emoji": true,
+                  "text": "Reject"
+                },
+                "style": "danger",
+                "value": "Reject"
+              }
+            ]
+          }
+        ]
+      }
+  
+      await axios.post(process.env.REBOOT_BUTTON,message).then(response => console.log(response)).catch(err => console.log(err));
+
+      self.outOfSyncNodeHandlerReboot(request);
+    }
+
     async function performAllActions(){
       const ethBlockNumFuncResult = await ethBlockNumFunc();
       const bwareBlockNumFuncResult = await bWareBlockNumFunc();
@@ -126,83 +171,40 @@ export class checkNodeHealth {
     await performAllActions();
   }
 
-  async outOfSyncNodeHandlerReboot() {
+  async outOfSyncNodeHandlerReboot(request) {
 
     const client = new WebClient(process.env.BOT_TOKEN, {
       // LogLevel can be imported and used to make debugging simpler
       logLevel: LogLevel.DEBUG
     });
 
-    const message = {
-      "blocks": [
-        {
-          "type": "header",
-          "text": {
-            "type": "plain_text",
-            "text": "Your node is out of sync, would you like to reboot?",
-            "emoji": true
-          }
-        },
-        {
-          "type": "actions",
-          "elements": [
-            {
-              "type": "button",
-              "text": {
-                "type": "plain_text",
-                "emoji": true,
-                "text": "Approve"
-              },
-              "style": "primary",
-              "value": "Approve"
-            },
-            {
-              "type": "button",
-              "text": {
-                "type": "plain_text",
-                "emoji": true,
-                "text": "Reject"
-              },
-              "style": "danger",
-              "value": "Reject"
-            }
-          ]
-        }
-      ]
-    }
-
     const channelId = process.env.CHANNEL_ID;
 
-    await axios.post(process.env.REBOOT_BUTTON, message).then(payload => {
+    console.log(request);
 
-      console.log(payload);
+    const encodedData = request.body;
 
-      // const responseUrl = response_url;
+    async function decodeBase64Url(encodedData) {
+      // Replace any characters in the base64Url string that are not part of the base64 alphabet
+      const base64 = encodedData.replace(/-/g, '+').replace(/_/g, '/');
 
-      const userAction = actions[0].value;
+      // Use the Buffer.from function to decode the base64 string
+      return Buffer.from(base64, 'base64').toString('utf8');
+    }
 
-      console.log(payload);
+    const decodedString = await decodeBase64Url(encodedData);
+    // console.log(decodedString);
 
-      // let action = payload.actions[0].value;
+    const parsedPayload = decodeURIComponent(decodedString);
+    console.log(parsedPayload);
 
-      // console.log(action);
+    const approveValue = parsedPayload.actions[0].value;
+    console.log(approveValue);
 
-      async function sendResponse(){
-        await axios.post(responseUrl, {text: `Input received: ${userAction}`}).then(console.log('Successfully sent response!')).catch(err => {console.log(err)});
-  
-        if (userAction.value === "Approve") {
-          console.log('found it!')
-          rebootApproved();
-        } else {
-          console.log('Not found')
-          rebootRejected();
-        }
-      }
-
-      sendResponse();
-
-      return {status:200, statusText: 'OK'}
-    }); 
+    // if (parsedPayload.payload.action[0].value === 'Approve'){
+    //   client.chat.postMessage({channel: channelId ,text:'Approve button clicked'});
+    //   console.log('Approve button clicked');
+    // };
 
     async function rebootApproved(){
       try {
@@ -210,6 +212,9 @@ export class checkNodeHealth {
           channel: channelId,
           text: `Reboot has been approved, rebooting...`
         });
+
+        await reboot();
+
       } catch (err) {
         console.log(err);
       }
@@ -223,6 +228,24 @@ export class checkNodeHealth {
         });
       } catch (err) {
         console.log(err);
+      }
+    }
+
+    async function reboot(){
+      const ec2 = new AWS.EC2({accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION
+      });
+    
+      const params = {
+        InstanceIds: [process.env.INSTANCE_ID]
+      };
+    
+      try {
+        const data = await ec2.rebootInstances(params).promise();
+        console.log(data);
+      } catch (err) {
+        console.error(err);
       }
     }
 
