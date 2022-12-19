@@ -8,7 +8,7 @@ const { Buffer } = require('buffer');
 
 export class checkNodeHealth {
 
-  async checkNodeStatusTest(){
+  async checkNodeStatus(){
 
     const self = this;
 

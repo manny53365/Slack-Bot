@@ -10,7 +10,7 @@ classes:
   - path: "./app.js"
     type: jsonrpc
     methods:
-      - name: "checkNodeStatusTest"
+      - name: "checkNodeStatus"
         type: cron
         cronString: "0/5 * * * ? *"
       - name: "outOfSyncNodeHandlerReboot"
