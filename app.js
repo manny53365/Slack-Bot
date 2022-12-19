@@ -35,7 +35,6 @@ export class checkNodeHealth {
       try{
         const response = await axios.post(process.env.ENDPOINT_URL,data)
         ethBlockNum = BigInt(response.data.result).toString();
-        return ethBlockNum = 0
       } catch (err) {
         console.log(err);
       }
@@ -173,62 +172,38 @@ export class checkNodeHealth {
 
   async outOfSyncNodeHandlerReboot(request) {
 
-    const client = new WebClient(process.env.BOT_TOKEN, {
-      // LogLevel can be imported and used to make debugging simpler
-      logLevel: LogLevel.DEBUG
-    });
-
-    const channelId = process.env.CHANNEL_ID;
-
-    console.log(request);
-
     const encodedData = request.body;
 
     async function decodeBase64Url(encodedData) {
-      // Replace any characters in the base64Url string that are not part of the base64 alphabet
       const base64 = encodedData.replace(/-/g, '+').replace(/_/g, '/');
 
-      // Use the Buffer.from function to decode the base64 string
       return Buffer.from(base64, 'base64').toString('utf8');
     }
 
     const decodedString = await decodeBase64Url(encodedData);
-    // console.log(decodedString);
 
     const parsedPayload = decodeURIComponent(decodedString);
-    console.log(parsedPayload);
 
-    const approveValue = parsedPayload.actions[0].value;
-    console.log(approveValue);
+    const payloadStartIndex = parsedPayload.indexOf('payload=') + 8;
+    const jsonString = parsedPayload.substring(payloadStartIndex);
+    const obj = JSON.parse(jsonString);
 
-    // if (parsedPayload.payload.action[0].value === 'Approve'){
-    //   client.chat.postMessage({channel: channelId ,text:'Approve button clicked'});
-    //   console.log('Approve button clicked');
-    // };
+    const approveValue = obj.actions[0].value;
+
+    if (approveValue === 'Approve'){
+      rebootApproved()
+    } else if (approveValue === 'Reject'){
+      rebootRejected();
+    }
 
     async function rebootApproved(){
-      try {
-        client.chat.postMessage({
-          channel: channelId,
-          text: `Reboot has been approved, rebooting...`
-        });
+      await axios.post(obj.response_url, {text:'Approve button clicked'});
 
-        await reboot();
-
-      } catch (err) {
-        console.log(err);
-      }
+      await reboot();
     }
 
     async function rebootRejected(){
-      try {
-        client.chat.postMessage({
-          channel: channelId,
-          text: `Reboot has been rejected.`
-        });
-      } catch (err) {
-        console.log(err);
-      }
+      await axios.post(obj.response_url, {text:'Reboot has been rejected'});
     }
 
     async function reboot(){
