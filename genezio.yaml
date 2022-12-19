@@ -12,6 +12,6 @@ classes:
     methods:
       - name: "checkNodeStatusTest"
         type: cron
-        cronString: "* * * * ? *"
+        cronString: "0/5 * * * ? *"
       - name: "outOfSyncNodeHandlerReboot"
         type: http
